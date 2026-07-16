@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>激活设备 - 系统自查HYC</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        }
+        body {
+            background: #f0f4f8;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .container {
+            background: #ffffff;
+            border-radius: 32px;
+            box-shadow: 0 20px 60px rgba(0, 20, 40, 0.12);
+            padding: 48px 40px;
+            width: 100%;
+            max-width: 420px;
+        }
+        .logo {
+            text-align: center;
+            margin-bottom: 28px;
+        }
+        .logo h1 {
+            font-size: 26px;
+            font-weight: 700;
+            color: #0b2b4a;
+        }
+        .logo h1 span {
+            color: #2b7be4;
+        }
+        .logo p {
+            color: #6b7a8f;
+            font-size: 14px;
+            margin-top: 4px;
+        }
+        label {
+            display: block;
+            font-size: 14px;
+            font-weight: 600;
+            color: #1e2a3a;
+            margin-top: 18px;
+            margin-bottom: 5px;
+        }
+        input[type="text"] {
+            width: 100%;
+            padding: 12px 16px;
+            border: 1.5px solid #dce3ed;
+            border-radius: 12px;
+            font-size: 15px;
+            background: #f9fbfd;
+        }
+        input:focus {
+            border-color: #2b7be4;
+            outline: none;
+            background: #fff;
+            box-shadow: 0 0 0 4px rgba(43, 123, 228, 0.10);
+        }
+        .btn-primary {
+            width: 100%;
+            margin-top: 20px;
+            padding: 14px;
+            background: #1a3a5c;
+            color: #fff;
+            border: none;
+            border-radius: 14px;
+            font-size: 17px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.25s;
+        }
+        .btn-primary:hover {
+            background: #0b2b4a;
+            transform: translateY(-1px);
+            box-shadow: 0 8px 24px rgba(26, 58, 92, 0.25);
+        }
+        .btn-primary:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .btn-secondary {
+            width: 100%;
+            margin-top: 12px;
+            padding: 12px;
+            background: #eef3fa;
+            color: #1a3a5c;
+            border: none;
+            border-radius: 14px;
+            font-size: 15px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .btn-secondary:hover {
+            background: #dce3ed;
+        }
+        .error-msg {
+            color: #d43e3e;
+            font-size: 14px;
+            margin-top: 14px;
+            text-align: center;
+            display: none;
+        }
+        .hint {
+            text-align: center;
+            font-size: 13px;
+            color: #8a9aa8;
+            margin-top: 16px;
+        }
+        .fingerprint-box {
+            background: #f7faff;
+            border: 1.5px dashed #c8d6e8;
+            border-radius: 12px;
+            padding: 16px;
+            margin: 16px 0;
+            word-break: break-all;
+            font-family: monospace;
+            font-size: 13px;
+            color: #0b2b4a;
+            user-select: all;
+        }
+        .step-hint {
+            background: #e8edf5;
+            border-radius: 10px;
+            padding: 12px 16px;
+            font-size: 14px;
+            color: #1a3a5c;
+            margin: 10px 0;
+        }
+        .step-hint strong {
+            color: #2b7be4;
+        }
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <div class="logo">
+            <h1>🔍 <span>系统自查</span>-HYC</h1>
+            <p>激活设备 · 获取设备指纹</p>
+        </div>
+
+        <!-- 输入授权码区域 -->
+        <div id="stepInput">
+            <label>🔑 授权码</label>
+            <input type="text" id="authCodeInput" placeholder="例如：ABC123">
+            <button class="btn-primary" id="getFingerprintBtn">获取设备指纹</button>
+            <div class="error-msg" id="errorMsg">授权码无效或已被使用</div>
+            <div class="hint">输入管理员发放的授权码，获取您的设备指纹</div>
+            <div style="margin-top:12px;font-size:12px;color:#8a9aa8;text-align:center;">
+                已绑定设备？<a href="#" id="directLoginLink">直接登录</a>
+            </div>
+        </div>
+
+        <!-- 显示指纹区域（初始隐藏） -->
+        <div id="stepFingerprint" class="hidden">
+            <div style="font-size:14px;font-weight:600;color:#1e2a3a;margin-bottom:6px;">📌 您的设备指纹：</div>
+            <div class="fingerprint-box" id="fingerprintDisplay"></div>
+            <div class="step-hint">
+                <strong>📋 请复制上面的设备指纹，发给管理员</strong><br>
+                管理员生成专属文件后，您将收到专属网址，点击即可进入系统。
+            </div>
+            <button class="btn-secondary" id="copyFingerprintBtn">📋 复制指纹</button>
+            <button class="btn-secondary" id="backToInputBtn">← 返回重新输入</button>
+        </div>
+    </div>
+
+    <script>
+        // ================================================================
+        // 获取设备指纹
+        // ================================================================
+        function getDeviceFingerprint() {
+            const nav = navigator;
+            const screen = window.screen;
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            ctx.textBaseline = 'top';
+            ctx.font = '14px Arial';
+            ctx.fillText('DeviceFingerprint', 2, 2);
+            const canvasData = canvas.toDataURL();
+            const components = [
+                nav.userAgent, nav.language, screen.colorDepth,
+                screen.width + 'x' + screen.height,
+                new Date().getTimezoneOffset(),
+                nav.hardwareConcurrency || 0,
+                nav.deviceMemory || 0,
+                canvasData
+            ];
+            return btoa(components.join('||')).substring(0, 64);
+        }
+
+        // ================================================================
+        // 数据操作（localStorage）
+        // ================================================================
+        const STORAGE_KEY = 'hyc_auth_data';
+
+        function getLocalData() {
+            try {
+                const raw = localStorage.getItem(STORAGE_KEY);
+                if (raw) return JSON.parse(raw);
+            } catch (e) {}
+            return { codes: [], adminFingerprint: '', nextId: 1 };
+        }
+
+        // 验证授权码是否有效且未使用
+        function verifyAuthCode(code) {
+            const data = getLocalData();
+            const record = data.codes.find(c => c.code === code);
+            if (!record) return { valid: false, reason: 'not_found' };
+            if (record.used) return { valid: false, reason: 'already_used' };
+            return { valid: true };
+        }
+
+        // ================================================================
+        // UI 交互
+        // ================================================================
+        const deviceId = getDeviceFingerprint();
+
+        document.getElementById('getFingerprintBtn').addEventListener('click', function() {
+            const code = document.getElementById('authCodeInput').value.trim().toUpperCase();
+            const errorEl = document.getElementById('errorMsg');
+            if (!code) {
+                errorEl.textContent = '⚠️ 请输入授权码';
+                errorEl.style.display = 'block';
+                return;
+            }
+            errorEl.style.display = 'none';
+
+            const result = verifyAuthCode(code);
+            if (!result.valid) {
+                errorEl.textContent = result.reason === 'already_used' ? '❌ 该授权码已被使用' : '❌ 授权码无效';
+                errorEl.style.display = 'block';
+                return;
+            }
+
+            // 有效，显示指纹
+            document.getElementById('fingerprintDisplay').textContent = deviceId;
+            document.getElementById('stepInput').classList.add('hidden');
+            document.getElementById('stepFingerprint').classList.remove('hidden');
+            sessionStorage.setItem('pending_auth_code', code);
+        });
+
+        document.getElementById('copyFingerprintBtn').addEventListener('click', function() {
+            const text = document.getElementById('fingerprintDisplay').textContent;
+            navigator.clipboard.writeText(text).then(() => {
+                this.textContent = '✅ 已复制';
+                setTimeout(() => this.textContent = '📋 复制指纹', 2000);
+            }).catch(() => {
+                const ta = document.createElement('textarea');
+                ta.value = text;
+                document.body.appendChild(ta);
+                ta.select();
+                document.execCommand('copy');
+                ta.remove();
+                this.textContent = '✅ 已复制';
+                setTimeout(() => this.textContent = '📋 复制指纹', 2000);
+            });
+        });
+
+        document.getElementById('backToInputBtn').addEventListener('click', function() {
+            document.getElementById('stepFingerprint').classList.add('hidden');
+            document.getElementById('stepInput').classList.remove('hidden');
+            document.getElementById('errorMsg').style.display = 'none';
+        });
+
+        document.getElementById('directLoginLink').addEventListener('click', function(e) {
+            e.preventDefault();
+            const savedCode = localStorage.getItem('HYC_AUTH_CODE');
+            if (savedCode) {
+                alert('请在专属网址或管理员版页面登录。如果您已绑定，可直接打开管理员版或专属文件。');
+            } else {
+                alert('未找到已绑定的授权码，请先激活设备。');
+            }
+        });
+
+        document.getElementById('authCodeInput').addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') {
+                document.getElementById('getFingerprintBtn').click();
+            }
+        });
+
+        console.log('✅ 激活页面已加载');
+        console.log('📌 当前设备指纹:', deviceId);
+    </script>
+
+</body>
+</html>
